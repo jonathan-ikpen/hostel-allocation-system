@@ -1,0 +1,2 @@
+-- Add passport field to userregistration table
+ALTER TABLE userregistration ADD COLUMN passport VARCHAR(255) DEFAULT NULL;

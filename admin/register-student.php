@@ -1,22 +1,48 @@
 <?php
     session_start();
     include('../includes/dbconn.php');
-    if(isset($_POST['submit']))
-    {
-    $regno=$_POST['regno'];
-    $fname=$_POST['fname'];
-    $mname=$_POST['mname'];
-    $lname=$_POST['lname'];
-    $gender=$_POST['gender'];
-    $contactno=$_POST['contact'];
-    $emailid=$_POST['email'];
-    $password=$_POST['password'];
-    $password = md5($password);
-    $query="INSERT into userRegistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password) values(?,?,?,?,?,?,?,?)";
-    $stmt = $mysqli->prepare($query);
-    $rc=$stmt->bind_param('sssssiss',$regno,$fname,$mname,$lname,$gender,$contactno,$emailid,$password);
-    $stmt->execute();
-        echo"<script>alert('Student has been Registered!');</script>";
+
+    function checkFileSizeAgainstMaxAllowedPacket($mysqli, $fileSize) {
+        $result = $mysqli->query("SHOW VARIABLES LIKE 'max_allowed_packet'");
+        $row = $result->fetch_assoc();
+        $maxAllowedPacket = isset($row['Value']) ? (int)$row['Value'] : 1048576; // default 1MB if not found
+        if ($fileSize > $maxAllowedPacket) {
+            echo '<script>alert("File too large. Maximum size allowed is " + Math.round(' . $maxAllowedPacket . ' / 1048576) + "MB."); window.history.back();</script>';
+            return false;
+        }
+        return true;
+    }
+    
+    if(isset($_POST['submit'])) {
+        $regno=$_POST['regno'];
+        $fname=$_POST['fname'];
+        $mname=$_POST['mname'];
+        $lname=$_POST['lname'];
+        $gender=$_POST['gender'];
+        $contactno=$_POST['contact'];
+        $emailid=$_POST['email'];
+        $password=$_POST['password'];
+        $password = md5($password);
+        // Passport upload check.
+        $fileSize = $_FILES['passport']['size'];
+        if (!checkFileSizeAgainstMaxAllowedPacket($mysqli, $fileSize)) {
+            exit;
+        }
+        if(isset($_FILES['passport']) && $_FILES['passport']['error'] === UPLOAD_ERR_OK && !empty($_FILES['passport']['tmp_name'])) {
+            $passportData = file_get_contents($_FILES['passport']['tmp_name']);
+        } else {
+            $passportData = null;
+        }
+        $query = "INSERT into userRegistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,passport) values(?,?,?,?,?,?,?,?,?)";
+        $stmt = $mysqli->prepare($query);
+        // Bind a dummy variable for blob, then send data if not null
+        $null = NULL;
+        $stmt->bind_param('sssssissb', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password, $null);
+        if ($passportData !== null) {
+            $stmt->send_long_data(8, $passportData); // 8th param (0-based index)
+        }
+        $stmt->execute();
+        echo "<script>alert('Student has been Registered!');</script>";
     }
 ?>
 
@@ -118,7 +144,7 @@
             <!-- ============================================================== -->
             <div class="container-fluid">
 
-                <form method="POST" name="registration" onSubmit="return valid();">
+                <form method="POST" enctype="multipart/form-data" name="registration" onSubmit="return valid();">
 
                     <div class="row">
 
@@ -240,6 +266,21 @@
                             </div>
                         </div>
 
+                        <div class="col-sm-12 col-md-6 col-lg-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h4 class="card-title">Passport Photograph</h4>
+                                        <div class="form-group">
+                                            <label for="passport">Max size is 1mb</label>
+                                            <div style="margin-top:10px;margin-bottom:10px;">
+                                                <img id="passport-preview" src="" alt="Passport Preview" style="max-width:120px;max-height:120px;border-radius:8px;display:none;">
+                                            </div>
+                                            <input type="file" name="passport" id="passport" accept="image/*" class="form-control" onchange="previewPassport(event)" maxlength="2097152">
+                                        </div>
+                                </div>
+                            </div>
+                        </div>
+
 
 
                     </div>
@@ -247,7 +288,7 @@
 
                         <div class="form-actions">
                             <div class="text-center">
-                                <button type="submit" name="submit" class="btn btn-success">Register</button>
+                                <button type="submit" id="submit_btn" name="submit" class="btn btn-success">Register</button>
                                 <button type="reset" class="btn btn-danger">Reset</button>
                             </div>
                         </div>
@@ -308,13 +349,28 @@
         success:function(data){
             $("#user-availability-status").html(data);
             $("#loaderIcon").hide();
-            },
-                error:function ()
-            {
+            if(data.trim().includes("Email already exist")) {
+                document.getElementById("submit_btn").disabled = true;
+            } else {
+                document.getElementById("submit_btn").disabled = false;
+            }
+        },
+        error:function (){
                 event.preventDefault();
                 alert('error');
-            }
+        }
         });
+    }
+
+
+    function previewPassport(event) {
+        var reader = new FileReader();
+        reader.onload = function(){
+            var output = document.getElementById('passport-preview');
+            output.src = reader.result;
+            output.style.display = 'block';
+        };
+        reader.readAsDataURL(event.target.files[0]);
     }
     </script>
 </body>

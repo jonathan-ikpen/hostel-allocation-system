@@ -61,20 +61,19 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="javascript:void(0)" data-toggle="dropdown"
                                 aria-haspopup="true" aria-expanded="false">
-                                <img src="../assets/images/users/user-icn.png" alt="user" class="rounded-circle"
-                                    width="40">
-                                
-                                    <?php	
+                                <?php	
                                     $aid=$_SESSION['id'];
-                                        $ret="select * from userregistration where id=?";
-                                        $stmt= $mysqli->prepare($ret) ;
-                                        $stmt->bind_param('i',$aid);
-                                        $stmt->execute();
-                                        $res=$stmt->get_result();
-                                        
-                                        while($row=$res->fetch_object())
+                                    $ret="select * from userregistration where id=?";
+                                    $stmt= $mysqli->prepare($ret) ;
+                                    $stmt->bind_param('i',$aid);
+                                    $stmt->execute();
+                                    $res=$stmt->get_result();
+                                    
+                                    
+                                    while($row=$res->fetch_object())
                                         {
                                             ?>	
+                                            <img src="<?php if(!empty($row->passport)){echo 'data:image/jpeg;base64,' . base64_encode($row->passport);}else{echo '../assets/images/users/user-icn.png';} ?>" alt="user" class="rounded-circle" width="40" height="40"/>
 
                                 <span class="ml-2 d-none d-lg-inline-block"><span>Hello,</span> <span
                                         class="text-dark"><?php echo $row->firstName; }?></span> <i data-feather="chevron-down"

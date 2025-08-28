@@ -49,16 +49,21 @@
             box-shadow: 0 2px 8px rgba(10,35,66,0.08);
             transition: background 0.2s;
         }
+        @media only screen and (max-width: 600px) {
+            .hide {
+                display: none;
+            }
+        }
     </style>
     <header class="header">
         <div class="logo">
-            <img src="/hostel/assets/images/logo-icon-nav.png" alt="PTI Hostel Logo">
-            <span style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">PTI Hostel Allocation</span>
+            <a href="/hostel/"><img src="/hostel/assets/images/logo-icon-nav.png" alt="PTI Hostel Logo"></a>
+            <span class="hide" style="font-size:1.5rem;font-weight:700;letter-spacing:1px;">PTI Hostel Allocation</span>
         </div>
         <nav>
-            <a href="/hostel/index.php#features">Features</a>
-            <a href="/hostel/index.php#about">About</a>
-            <a href="/hostel/index.php#contact">Contact</a>
+            <a class="hide" href="/hostel/index.php#features">Features</a>
+            <a class="hide" href="/hostel/index.php#about">About</a>
+            <a class="hide" href="/hostel/index.php#contact">Contact</a>
             <a href="/hostel/admin/index.php">Admin</a>
             <a href="/hostel/login.php" class="cta-btn" style="background:#fff;color:#000;padding:8px 18px;border-radius:8px;font-size:1rem;">Login</a>
         </nav>

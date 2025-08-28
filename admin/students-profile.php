@@ -112,9 +112,23 @@
                                       $id=$_GET['id'];
                                         $ret="SELECT * from registration where id=?";
                                         $stmt= $mysqli->prepare($ret) ;
-                                    $stmt->bind_param('i',$id);
-                                    $stmt->execute() ;//ok
-                                    $res=$stmt->get_result();
+                                        $stmt->bind_param('i',$id);
+                                        $stmt->execute() ;//ok
+                                        $res=$stmt->get_result();
+
+                                        function fetchPassport($mysqli, $regno) {
+                                            $passportImg = '';
+                                            $stmtPass = $mysqli->prepare("SELECT passport FROM userregistration WHERE regno = ?");
+                                            $stmtPass->bind_param('s', $regno);
+                                            $stmtPass->execute();
+                                            $stmtPass->bind_result($passportData);
+                                            if ($stmtPass->fetch() && !empty($passportData)) {
+                                                $passportImg = 'data:image/jpeg;base64,' . base64_encode($passportData);
+                                            }
+                                            $stmtPass->close();
+                                            return $passportImg ? $passportImg : '../assets/images/users/user-icn.png';
+                                        }
+
                                     //$cnt=1;
                                     while($row=$res->fetch_object())
                                     {
@@ -122,7 +136,8 @@
                                         
 
                                           <tr>
-                                              <td colspan="3"><b>Date & Time of Registration: <?php echo $row->postingDate;?></b></td>
+                                              <td colspan="3" style="vertical-align: middle;"><b>Date & Time of Registration: <?php echo $row->postingDate;?></b></td>
+                                              <td colspan="3" style="vertical-align: middle; text-align: right;"><img src="<?php echo fetchPassport($mysqli, $row->regno) ?>" alt="profile pic" width="100" /></td>
                                               
                                           </tr>
 

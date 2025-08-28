@@ -7,11 +7,11 @@
     $ai=$_SESSION['id'];
     // code for change password
     if(isset($_POST['changepwd'])){
-    $op=$_POST['oldpassword'];
-    $op=md5($op);
-    $np=$_POST['newpassword'];
-    $np=md5($np);
-    $udate=date('d-m-Y h:i:s', time());;
+        $op=$_POST['oldpassword'];
+        $op=md5($op);
+        $np=$_POST['newpassword'];
+        $np=md5($np);
+        $udate=date('d-m-Y h:i:s', time());;
         $sql="SELECT password FROM userregistration where password=?";
         $chngpwd = $mysqli->prepare($sql);
         $chngpwd->bind_param('s',$op);
@@ -29,13 +29,74 @@
         }	
 
     }
+
+
+    $userId = $_SESSION['id'];
+    $passportImg = '';
+    $stmt = $mysqli->prepare("SELECT passport FROM userregistration WHERE id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->bind_result($passportData);
+    if ($stmt->fetch() && !empty($passportData)) {
+        $passportImg = 'data:image/jpeg;base64,' . base64_encode($passportData);
+    }
+    $stmt->close();
+
+    function checkFileSizeAgainstMaxAllowedPacket($mysqli, $fileSize) {
+        $result = $mysqli->query("SHOW VARIABLES LIKE 'max_allowed_packet'");
+        $row = $result->fetch_assoc();
+        $maxAllowedPacket = isset($row['Value']) ? (int)$row['Value'] : 1048576; // default 1MB if not found
+        if ($fileSize > $maxAllowedPacket) {
+            echo '<script>alert("File too large. Maximum size allowed is " + Math.round(' . $maxAllowedPacket . ' / 1048576) + "MB."); window.history.back();</script>';
+            return false;
+        }
+        return true;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['passport'])) {
+        // Check for upload errors first
+        if ($_FILES['passport']['error'] === UPLOAD_ERR_INI_SIZE || $_FILES['passport']['error'] === UPLOAD_ERR_FORM_SIZE) {
+            echo '<script>alert("File too large. Maximum allowed size is 2MB.");</script>';
+            exit;
+        }
+        if ($_FILES['passport']['error'] !== UPLOAD_ERR_OK) {
+            echo '<script>alert("File upload error. Please try again.");</script>';
+            exit;
+        }
+        // Check for valid file size and valid tmp_name
+        if ($_FILES['passport']['size'] > 2 * 1024 * 1024 || empty($_FILES['passport']['tmp_name']) || !is_uploaded_file($_FILES['passport']['tmp_name'])) {
+            echo '<script>alert("File too large or invalid. Maximum allowed size is 2MB.");</script>';
+            exit;
+        }
+        $fileSize = $_FILES['passport']['size'];
+        if (!checkFileSizeAgainstMaxAllowedPacket($mysqli, $fileSize)) {
+            exit;
+        }
+        // Only process if file is valid
+        $passportData = file_get_contents($_FILES['passport']['tmp_name']);
+        $passportEscaped = $mysqli->real_escape_string($passportData);
+        $userId = $_SESSION['id'];
+        $query = "UPDATE userregistration SET passport='$passportEscaped' WHERE id='$userId'";
+        if ($mysqli->query($query)) {
+            $_SESSION['passport_uploaded'] = true;
+            header("Location: acc-setting.php");
+            exit;
+        } else {
+            echo '<script>alert("Error uploading passport: ' . $mysqli->error . '");</script>';
+        }
+    }
+
+    // Show alert only if flag is set
+    if (isset($_SESSION['passport_uploaded'])) {
+        echo '<script>alert("Passport uploaded successfully!");</script>';
+        unset($_SESSION['passport_uploaded']);
+    }
 ?>
 
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 
 <head>
-<!-- By CodeAstro - codeastro.com -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <!-- Tell the browser to be responsive to screen width -->
@@ -68,12 +129,14 @@
     <!-- ============================================================== -->
     <!-- Preloader - style you can find in spinners.css -->
     <!-- ============================================================== -->
+
     <div class="preloader">
         <div class="lds-ripple">
             <div class="lds-pos"></div>
             <div class="lds-pos"></div>
         </div>
     </div>
+
     <!-- ============================================================== -->
     <!-- Main wrapper - style you can find in pages.scss -->
     <!-- ============================================================== -->
@@ -92,6 +155,7 @@
         <!-- ============================================================== -->
         <!-- Left Sidebar - style you can find in sidebar.scss  -->
         <!-- ============================================================== -->
+
         <aside class="left-sidebar" data-sidebarbg="skin6">
             <!-- Sidebar scroll-->
             <div class="scroll-sidebar" data-sidebarbg="skin6">
@@ -113,25 +177,25 @@
             <div class="container-fluid">
                 
                 <div class="col-7 align-self-center">
-                        <h4 class="page-title text-truncate text-dark font-weight-medium mb-1">Account Settings - Change Password</h4>
+                    <h4 class="page-title text-truncate text-dark font-weight-medium mb-1">Account Settings - Change Password</h4>
                 </div>
 
                 <div class="row">
+                    <?php $result ="SELECT passUdateDate FROM userregistration WHERE id=?";
+                        $stmt = $mysqli->prepare($result);
+                        $stmt->bind_param('i',$ai);
+                        $stmt->execute();
+                        $stmt -> bind_result($result);
+                        $stmt -> fetch(); 
+                    ?>
 
-                <?php $result ="SELECT passUdateDate FROM userregistration WHERE id=?";
-                $stmt = $mysqli->prepare($result);
-                $stmt->bind_param('i',$ai);
-                $stmt->execute();
-                $stmt -> bind_result($result);
-                $stmt -> fetch(); ?>
-
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-subtitle">Last Updated On: <code><?php echo $result; ?></code> </h6>
-                                </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-subtitle">Last Updated On: <code><?php echo $result; ?></code> </h6>
                             </div>
                         </div>
+                    </div>
                 </div>
 
 
@@ -142,7 +206,8 @@
                                         <span aria-hidden="true">&times;</span>
                                     </button>
                                     <strong>Info: </strong> <?php echo htmlentities($_SESSION['msg']); ?><?php echo htmlentities($_SESSION['msg']=""); ?>
-                        </div> <?php } ?>
+                        </div> <?php } 
+                ?>
 
                 <form method="POST" name="changepwd" id="change-pwd" onSubmit="return valid();">
                     <div class="row">
@@ -160,7 +225,6 @@
                                 </div>
                             </div>
 
-
                             <div class="col-sm-12 col-md-6 col-lg-4">
                                 <div class="card">
                                     <div class="card-body">
@@ -173,7 +237,6 @@
                                 </div>
                             </div>
 
-
                             <div class="col-sm-12 col-md-6 col-lg-4">
                                 <div class="card">
                                     <div class="card-body">
@@ -184,18 +247,40 @@
                                     </div>
                                 </div>
                             </div>
-                    
-                    
                     </div>
 
-                    
                     <div class="form-actions">
-                                <div class="text-center">
-                                    <button type="submit" name="changepwd" class="btn btn-success">Submit</button>
-                                    <button type="reset" class="btn btn-dark">Reset</button>
-                                    </div>
-                            </div>
+                        <div class="text-center">
+                            <button type="submit" name="changepwd" class="btn btn-success">Submit</button>
+                            <button type="reset" class="btn btn-dark">Reset</button>
+                        </div>
+                    </div>
+                </form>
 
+                <form id="acc-settings-form" method="POST" enctype="multipart/form-data" style="margin-top:40px;margin-bottom:10px;">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6 col-lg-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h4 class="card-title">Passport Photograph</h4>
+                                        <div class="form-group">
+                                            <label for="passport">Passport Photograph</label>
+                                            <div style="margin-top:10px;margin-bottom:10px;">
+                                                <img id="passport-preview" src="<?php echo $passportImg; ?>" alt="Passport Preview" style="max-width:120px;max-height:120px;border-radius:8px;display:<?php echo $passportImg ? 'block' : 'none'; ?>;">
+                                            </div>
+                                            <input type="file" name="passport" id="passport" accept="image/*" class="form-control" onchange="previewPassport(event)" maxlength="2097152">
+                                        </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <div class="text-center">
+                            <button type="submit" name="upload_passport" class="btn btn-success">Submit Passport</button>
+                            <button type="reset" class="btn btn-dark">Reset</button>
+                        </div>
+                    </div>
                 </form>
 
             </div>
@@ -240,20 +325,32 @@
     <script src="../dist/js/pages/dashboards/dashboard1.min.js"></script>
 
     <!-- customs -->
+
     <script>
-    function checkpass() {
-        $("#loaderIcon").show();
-        jQuery.ajax({
-        url: "check-availability.php",
-        data:'oldpassword='+$("#oldpassword").val(),
-        type: "POST",
-        success:function(data){
-            $("#password-availability-status").html(data);
-            $("#loaderIcon").hide();
-            },
-            error:function (){}
-        });
-    }
+        function checkpass() {
+            $("#loaderIcon").show();
+            jQuery.ajax({
+            url: "check-availability.php",
+            data:'oldpassword='+$("#oldpassword").val(),
+            type: "POST",
+            success:function(data){
+                $("#password-availability-status").html(data);
+                $("#loaderIcon").hide();
+                },
+                error:function (){}
+            });
+        }
+
+        function previewPassport(event) {
+            var reader = new FileReader();
+            reader.onload = function(){
+                var output = document.getElementById('passport-preview');
+                output.src = reader.result;
+                output.style.display = 'block';
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+        
     </script>
 </body>
 
