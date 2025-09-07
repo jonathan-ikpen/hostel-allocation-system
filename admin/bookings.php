@@ -682,38 +682,43 @@
                 return;
             }
 
-            var paymentEngine = RmPaymentEngine.init({
-                key: 'QzAwMDAyNzEyNTl8MTEwNjE4NjF8OWZjOWYwNmMyZDk3MDRhYWM3YThiOThlNTNjZTE3ZjYxOTY5NDdmZWE1YzU3NDc0ZjE2ZDZjNTg1YWYxNWY3NWM4ZjMzNzZhNjNhZWZlOWQwNmJhNTFkMjIxYTRiMjYzZDkzNGQ3NTUxNDIxYWNlOGY4ZWEyODY3ZjlhNGUwYTY=',
-                transactionId: transactionId,
-                customerId: customerId,
-                firstName: firstName,
-                lastName: lastName,
-                email: email,
-                amount: Number(amount),
-                narration: 'Hostel Allocation',
-                onSuccess: function (response) {
-                    // On payment success, submit booking form with paymentReference and transactionId
-                    var formData = new FormData(form);
-                    formData.append('paymentReference', response.paymentReference);
-                    formData.append('transactionId', response.transactionId);
-                    fetch('book-hostel.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(res => res.text())
-                    .then(data => {
-                        alert('Payment successful! Booking completed.');
-                        window.location.reload();
-                    });
-                },
-                onError: function (response) {
-                    alert('Payment failed. Please try again.');
-                },
-                onClose: function () {
-                    console.log("Payment widget closed");
-                }
-            });
-            paymentEngine.showPaymentWidget();
+            try {
+                var paymentEngine = RmPaymentEngine.init({
+                    key: 'QzAwMDAyNzEyNTl8MTEwNjE4NjF8OWZjOWYwNmMyZDk3MDRhYWM3YThiOThlNTNjZTE3ZjYxOTY5NDdmZWE1YzU3NDc0ZjE2ZDZjNTg1YWYxNWY3NWM4ZjMzNzZhNjNhZWZlOWQwNmJhNTFkMjIxYTRiMjYzZDkzNGQ3NTUxNDIxYWNlOGY4ZWEyODY3ZjlhNGUwYTY=',
+                    transactionId: transactionId,
+                    customerId: customerId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    amount: Number(amount),
+                    narration: 'Hostel Allocation',
+                    onSuccess: function (response) {
+                        // On payment success, submit booking form with paymentReference and transactionId
+                        var formData = new FormData(form);
+                        formData.append('paymentReference', response.paymentReference);
+                        formData.append('transactionId', response.transactionId);
+                        fetch('book-hostel.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.text())
+                        .then(data => {
+                            alert('Payment successful! Booking completed.');
+                            window.location.reload();
+                        });
+                    },
+                    onError: function (response) {
+                        alert('Payment failed. Please try again.');
+                    },
+                    onClose: function () {
+                        console.log("Payment widget closed");
+                    }
+                });
+                paymentEngine.showPaymentWidget();
+            } catch(err) {
+                alert('Network Temporatily Down! ☹️ We will Reload the Page. Please Try Again');
+                window.location.reload();
+            }
         }
     </script>
 
